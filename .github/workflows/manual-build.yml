@@ -28,6 +28,9 @@ jobs:
       run:
         shell: bash
     env:
+      # Blender 5.2 requires GCC 14; Ubuntu 24.04 defaults to GCC 13.
+      CC: gcc-14
+      CXX: g++-14
       BLENDER_VERSION: ${{ inputs.blender_version }}
       BLENDER_DEPENDENCY_REF: ${{ inputs.dependency_ref }}
       BLENDER_BUILD_JOBS: '4'
@@ -44,13 +47,15 @@ jobs:
       - name: Install build and software graphics packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y git-lfs cmake ninja-build build-essential python3 xz-utils pkg-config dpkg-dev binutils \
+          sudo apt-get install -y git-lfs cmake ninja-build build-essential gcc-14 g++-14 python3 xz-utils pkg-config dpkg-dev binutils \
             libx11-dev libxxf86vm-dev libxi-dev libxfixes-dev libxrender-dev \
             libxrandr-dev libxcursor-dev libxinerama-dev libegl-dev libwayland-dev \
             libdecor-0-dev libdbus-1-dev libxkbcommon-dev libsm-dev libice-dev \
             libvulkan-dev libpulse-dev libjack-jackd2-dev libasound2-dev \
             libgl1-mesa-dri libegl-mesa0 xvfb xauth
           echo "BLENDER_INSTALL_DIR=$RUNNER_TEMP/blender-install" >> "$GITHUB_ENV"
+          "$CC" --version
+          "$CXX" --version
           df -h .
 
       - name: Fetch stable source and ARM64 libraries

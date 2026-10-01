@@ -34,13 +34,15 @@ cmake -S source -B "$build_dir" -G Ninja \
 cmake --build "$build_dir" --parallel "${BLENDER_BUILD_JOBS:-4}" 2>&1 | tee -a logs/build.log
 cmake --install "$build_dir" 2>&1 | tee logs/install.log
 "$install_dir/blender" --version | tee logs/version.log
-python3 - "$metadata_file" "${BLENDER_NATIVE_ONLY:-ON}" <<'PYINFO'
+python3 - "$metadata_file" "${BLENDER_NATIVE_ONLY:-ON}" "$build_dir" <<'PYINFO'
 import json, platform, subprocess, sys
 from pathlib import Path
 path = Path(sys.argv[1])
 info = json.loads(path.read_text())
+cache = Path(sys.argv[3], 'CMakeCache.txt').read_text().splitlines()
+compiler = next(line.split('=', 1)[1] for line in cache if line.startswith('CMAKE_C_COMPILER:'))
 info.update(build_os=platform.freedesktop_os_release(), build_machine=platform.machine(),
-            cycles_native_only=sys.argv[2], compiler=subprocess.check_output(['cc', '--version'], text=True).splitlines()[0])
+            cycles_native_only=sys.argv[2], compiler=subprocess.check_output([compiler, '--version'], text=True).splitlines()[0])
 try:
     info['recipe_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True, stderr=subprocess.DEVNULL).strip()
 except subprocess.CalledProcessError:

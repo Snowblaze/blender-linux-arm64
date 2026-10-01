@@ -66,7 +66,7 @@ git clone https://github.com/Snowblaze/blender-linux-arm64.git
 cd blender-linux-arm64
 ```
 
-Blender declares CMake 3.21 as its minimum; CMake 3.31.6 was tested for this recipe. The original build used CMake 3.31.6, GCC 14.2, Ninja, and four build jobs. Allow several gigabytes for sources, Git LFS libraries, object files, and packaging copies. The installation defaults to `~/.local/opt/blender-<version>-linux-arm64`, outside the checkout. Set `BLENDER_INSTALL_DIR` to an absolute path to change it; use the same setting when building, running the verification commands, and packaging.
+Blender declares CMake 3.21 as its minimum; CMake 3.31.6 was tested for this recipe. Blender 5.2 requires GCC 14 or newer. On Ubuntu 24.04, install `gcc-14 g++-14` and export `CC=gcc-14 CXX=g++-14` before the first build; the workflow does this automatically. When changing compilers for an existing build, use a new `BLENDER_BUILD_DIR` because CMake caches the compiler choice. The original build used CMake 3.31.6, GCC 14.2, Ninja, and four build jobs. Allow several gigabytes for sources, Git LFS libraries, object files, and packaging copies. The installation defaults to `~/.local/opt/blender-<version>-linux-arm64`, outside the checkout. Set `BLENDER_INSTALL_DIR` to an absolute path to change it; use the same setting when building, running the verification commands, and packaging.
 
 The default native CPU settings target the machine performing the build; this is not a cross-compilation recipe.
 
