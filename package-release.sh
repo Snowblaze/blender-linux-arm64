@@ -21,7 +21,7 @@ mkdir -p "$release_dir"
 staging="$(mktemp -d "$release_dir/.staging.XXXXXX")"
 trap 'rm -rf -- "$staging"' EXIT
 cp -a "$install_dir" "$staging/$folder"
-for file in README.md fetch-dependency-source.py LICENSE; do
+for file in README.md RELEASING.md fetch-dependency-source.py LICENSE; do
     cp "$recipe_dir/$file" "$staging/$folder/"
 done
 cp "$project_dir/logs/dependency-sources.tsv" "$staging/dependency-sources.tsv"
@@ -31,7 +31,7 @@ python3 "$recipe_dir/package-deb.py" --payload "$staging/$folder" \
     --output "$release_dir" --version "$blender_version" --os-label "$os_id" \
     --log "$project_dir/logs/package-dependencies.log"
 cp "$release_dir/BUILD-INFO.json" "$staging/BUILD-INFO.json"
-recipe_files=(README.md LICENSE build-blender.sh build-settings.sh \
+recipe_files=(README.md RELEASING.md LICENSE build-blender.sh build-settings.sh \
     prepare-source.sh prepare-source.py generate-dependency-manifest.cmake package-release.sh package-deb.py blender-launcher.py \
     fetch-dependency-source.py verify-build.py verify-ui.py config .github/workflows/manual-build.yml)
 tar -cJf "$release_dir/$source_name" \

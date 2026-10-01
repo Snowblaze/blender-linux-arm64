@@ -107,7 +107,7 @@ StartupWMClass=Blender
 ''')
     documentation = package_root/'usr/share/doc'/PACKAGE
     documentation.mkdir(parents=True)
-    for filename in ['README.md', 'BUILD-INFO.json', 'dependency-sources.tsv']:
+    for filename in ['README.md', 'RELEASING.md', 'LICENSE', 'BUILD-INFO.json', 'dependency-sources.tsv']:
         shutil.copy2(payload/filename, documentation/filename)
     (documentation/'copyright').write_text(
         'Blender: Copyright Blender Foundation and Blender contributors.\n'
