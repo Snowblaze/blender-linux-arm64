@@ -140,7 +140,9 @@ StartupWMClass=Blender
     with args.log.open('w') as log:
         result = subprocess.run(command, cwd=work, text=True, stdout=subprocess.PIPE, stderr=log)
     if result.returncode:
-        raise SystemExit(f'Failed to resolve package dependencies; see {args.log}.')
+        error = next((line for line in args.log.read_text().splitlines() if ': error:' in line),
+                     'dpkg-shlibdeps failed without an error diagnostic.')
+        raise SystemExit(f'{error}\nFailed to resolve package dependencies; see {args.log}.')
     match = re.search(r'^shlibs:Depends=(.+)$', result.stdout, re.M)
     if not match:
         raise SystemExit('dpkg-shlibdeps returned no system library dependencies.')

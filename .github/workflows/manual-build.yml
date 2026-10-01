@@ -52,7 +52,7 @@ jobs:
             libxrandr-dev libxcursor-dev libxinerama-dev libegl-dev libwayland-dev \
             libdecor-0-dev libdbus-1-dev libxkbcommon-dev libsm-dev libice-dev \
             libvulkan-dev libpulse-dev libjack-jackd2-dev libasound2-dev \
-            libgl1-mesa-dri libegl-mesa0 xvfb xauth
+            libgl1-mesa-dri libegl-mesa0 libopengl0 xvfb xauth
           echo "BLENDER_INSTALL_DIR=$RUNNER_TEMP/blender-install" >> "$GITHUB_ENV"
           "$CC" --version
           "$CXX" --version
