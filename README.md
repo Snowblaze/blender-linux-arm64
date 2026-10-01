@@ -6,7 +6,7 @@ This project is not affiliated with or endorsed by the Blender Foundation.
 
 ## Install and run
 
-Download the ARM64 `.deb` installer and `SHA256SUMS` from a completed workflow's **Artifacts**, or from [Releases](https://github.com/Snowblaze/blender-linux-arm64/releases) once a build has been published there. Choose the package built for your distribution and release: for example, the local package targets Debian 13, while hosted workflow packages target Ubuntu 24.04. Replace the filename below with the downloaded installer.
+Download the ARM64 `.deb` installer and `SHA256SUMS` from [Releases](https://github.com/Snowblaze/blender-linux-arm64/releases), or from a completed workflow's **Artifacts**. Choose the package built for your distribution and release: for example, the local package targets Debian 13, while hosted workflow packages target Ubuntu 24.04. Replace the filename below with the downloaded installer.
 
 ```sh
 sha256sum --ignore-missing -c SHA256SUMS
@@ -144,6 +144,8 @@ Push this recipe and `.github/workflows/manual-build.yml` to the repository's de
 - **Blender version:** enter a stable version such as `5.2.2`, or leave blank to select the newest stable upstream tag at run time. Alpha, beta and release-candidate tags are excluded.
 - **Dependency ref:** normally leave blank. If no matching ARM64 library branch or identifiable main bundle is available, supply a compatible official library commit/branch. The resolved commit is always recorded.
 
-The workflow runs only when manually triggered; pushes, tags and new upstream releases do not start it. It builds natively on `ubuntu-24.04-arm`, verifies CPU rendering and software OpenGL under Xvfb, then uploads the `.deb` installer, source archive, checksums and build metadata as downloadable artifacts retained for 30 days. Diagnostic logs are retained for 14 days, including on failures. It does not publish a GitHub Release.
+The workflow runs only when manually triggered; pushes, tags and new upstream releases do not start it. It builds natively on `ubuntu-24.04-arm`, verifies CPU rendering and software OpenGL under Xvfb, and tests the installed Debian package and Auto graphics launcher. After those checks pass, it uploads the `.deb` installer, source archive, checksums and build metadata as downloadable artifacts retained for 30 days, then publishes the same files as a GitHub Release. Diagnostic logs are retained for 14 days, including on failures.
 
-Hosted artifacts are labelled with their Ubuntu build OS; they are not the existing Debian/Pi 5 build. They need separate testing on the target device before publication. New upstream compiler requirements, dependency changes or feature changes can require updating this recipe.
+Release tags include the Blender version, build OS, workflow run number and attempt, for example `v5.2.2-ubuntu24.04-arm64-r4-a1`. This gives rebuilds and reruns separate releases. Each tag points to the exact recipe commit used by that run. Publishing uses the workflow's built-in `GITHUB_TOKEN` with `contents: write` permission; no personal access token is needed.
+
+Hosted releases target Ubuntu 24.04 ARM64. Compatibility with other distributions and devices requires separate testing. New upstream compiler requirements, dependency changes or feature changes can require updating this recipe.

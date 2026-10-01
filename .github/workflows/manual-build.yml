@@ -23,6 +23,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write
     timeout-minutes: 360
     defaults:
       run:
@@ -47,7 +49,7 @@ jobs:
       - name: Install build and software graphics packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y git-lfs cmake ninja-build build-essential gcc-14 g++-14 python3 xz-utils pkg-config dpkg-dev binutils \
+          sudo apt-get install -y git-lfs gh cmake ninja-build build-essential gcc-14 g++-14 python3 xz-utils pkg-config dpkg-dev binutils \
             libx11-dev libxxf86vm-dev libxi-dev libxfixes-dev libxrender-dev \
             libxrandr-dev libxcursor-dev libxinerama-dev libegl-dev libwayland-dev \
             libdecor-0-dev libdbus-1-dev libxkbcommon-dev libsm-dev libice-dev \
@@ -114,6 +116,27 @@ jobs:
           compression-level: 0
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${BLENDER_VERSION}-ubuntu24.04-arm64-r${BLENDER_PACKAGE_REVISION}-a${GITHUB_RUN_ATTEMPT}"
+          notes="$RUNNER_TEMP/blender-release-notes.md"
+          {
+            printf 'Unofficial Blender %s for Ubuntu 24.04 ARM64.\n\n' "$BLENDER_VERSION"
+            printf 'CPU-only Cycles with automatic graphics selection: Vulkan, OpenGL, then software OpenGL.\n\n'
+            printf 'Download the .deb installer and SHA256SUMS. Verify the checksum, then install with `sudo apt install ./blender-linux-arm64_*.deb`.\n\n'
+            printf 'The source archive contains Blender source and the build recipe. BUILD-INFO.json records the exact source, dependency and recipe commits. See the repository README for CPU and distribution compatibility.\n\n'
+            printf '[Build and verification logs](%s/%s/actions/runs/%s).\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+          } > "$notes"
+          (cd release && sha256sum -c SHA256SUMS)
+          gh release create "$tag" \
+            release/*.deb release/*-source.tar.xz release/BUILD-INFO.json release/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Blender $BLENDER_VERSION — Ubuntu 24.04 ARM64 (build $BLENDER_PACKAGE_REVISION, attempt $GITHUB_RUN_ATTEMPT)" \
+            --notes-file "$notes"
+          printf '\n[GitHub Release](%s/%s/releases/tag/%s)\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$tag" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload diagnostic logs
         if: always()
