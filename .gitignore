@@ -1,0 +1,36 @@
+# Upstream source and downloaded dependencies (recreated by prepare-source.sh)
+/source/
+/tools/
+/dependency-sources/
+
+# Build cache, compiled installation, and generated release packages
+/build/
+/blender-*-linux-arm64/
+/release/
+/staging/
+
+# Build logs and verification outputs
+/logs/
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Generated archives and downloaded packages
+*.tar.xz
+*.tar.gz
+*.tar.zst
+*.zip
+*.deb
+
+# Local editor, environment, and credential files
+/.agents/
+/.codex/
+/.aws/
+/.vscode/
+/.idea/
+.env
+.env.*
+*.swp
+*~
+.DS_Store

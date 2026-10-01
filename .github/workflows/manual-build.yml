@@ -1,0 +1,122 @@
+name: Build Blender ARM64
+run-name: Blender ARM64 — ${{ inputs.blender_version || 'latest stable' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      blender_version:
+        description: 'Stable Blender version (blank selects newest stable tag)'
+        required: false
+        type: string
+      dependency_ref:
+        description: 'Optional official ARM64 library commit/branch override'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-arm64-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 360
+    defaults:
+      run:
+        shell: bash
+    env:
+      BLENDER_VERSION: ${{ inputs.blender_version }}
+      BLENDER_DEPENDENCY_REF: ${{ inputs.dependency_ref }}
+      BLENDER_BUILD_JOBS: '4'
+      BLENDER_PACKAGE_REVISION: ${{ github.run_number }}
+      # Hosted runner CPU differs from Pi 5; avoid its native CPU tuning.
+      BLENDER_NATIVE_ONLY: 'OFF'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - name: Check out build recipe
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install build and software graphics packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs cmake ninja-build build-essential python3 xz-utils pkg-config dpkg-dev binutils \
+            libx11-dev libxxf86vm-dev libxi-dev libxfixes-dev libxrender-dev \
+            libxrandr-dev libxcursor-dev libxinerama-dev libegl-dev libwayland-dev \
+            libdecor-0-dev libdbus-1-dev libxkbcommon-dev libsm-dev libice-dev \
+            libvulkan-dev libpulse-dev libjack-jackd2-dev libasound2-dev \
+            libgl1-mesa-dri libegl-mesa0 xvfb xauth
+          echo "BLENDER_INSTALL_DIR=$RUNNER_TEMP/blender-install" >> "$GITHUB_ENV"
+          df -h .
+
+      - name: Fetch stable source and ARM64 libraries
+        id: source
+        run: |
+          ./prepare-source.sh 2>&1 | tee prepare.log
+          version=$(python3 -c 'import json; print(json.load(open("logs/build-info.json"))["version"])')
+          echo "BLENDER_VERSION=$version" >> "$GITHUB_ENV"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          mv prepare.log logs/prepare.log
+          # LFS objects duplicate hydrated files; keep the checkout and source commit.
+          rm -rf source/.git/lfs/objects source/lib/linux_arm64/.git/lfs/objects
+
+      - name: Build and install
+        run: ./build-blender.sh
+
+      - name: Verify CPU rendering and software OpenGL
+        run: |
+          xvfb-run -a -s '-screen 0 1280x720x24' "$BLENDER_INSTALL_DIR/blender" \
+            --gpu-backend opengl -noaudio --background --factory-startup \
+            --python-exit-code 1 --python verify-build.py 2>&1 | tee logs/verify.log
+
+      - name: Verify GUI startup
+        run: |
+          timeout 120s xvfb-run -a -s '-screen 0 1280x720x24' "$BLENDER_INSTALL_DIR/blender" \
+            --gpu-backend opengl -noaudio --factory-startup \
+            --python-exit-code 1 --python verify-ui.py 2>&1 | tee logs/verify-ui.log
+          grep -q '^UI_VERIFIED ' logs/verify-ui.log
+
+      - name: Package Debian installer, source and checksums
+        run: |
+          ./package-release.sh
+          {
+            echo '### Build complete'
+            echo "Blender $BLENDER_VERSION, Linux ARM64, built on Ubuntu 24.04."
+            echo 'Download the .deb installer, source archive, metadata and checksums from Artifacts below.'
+            echo 'See BUILD-INFO.json for resolved source and dependency commits.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify installed Debian package and Auto graphics
+        run: |
+          package=$(find release -maxdepth 1 -name '*.deb' -print -quit)
+          sudo apt-get install -y "$PWD/$package"
+          /usr/bin/blender --version
+          timeout 120s xvfb-run -a -s '-screen 0 1280x720x24' \
+            env -u LIBGL_ALWAYS_SOFTWARE /usr/bin/blender \
+            -noaudio --factory-startup --python-exit-code 1 \
+            --python verify-ui.py 2>&1 | tee logs/verify-package-ui.log
+          grep -q '^UI_VERIFIED ' logs/verify-package-ui.log
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: blender-${{ steps.source.outputs.version }}-ubuntu24.04-arm64
+          path: release/
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            logs/
+            prepare.log
+          if-no-files-found: ignore
+          retention-days: 14
